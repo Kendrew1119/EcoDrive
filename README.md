@@ -1,92 +1,87 @@
-# 🏆 EcoDrive+ 
-### *Drive Green. Earn Green. Grow Green.*
+# EcoDrive+
+### Drive Green. Earn Green. Grow Green.
 
-An all-in-one EV sustainability platform that combines a **real-time driving dashboard**, **virtual forest gamification**, **Eco-City Builder (SimCity-style)**, **community leaderboard**, and **ESP32 hardware feedback** to make carbon savings visible, rewarding, and deeply engaging.
+EcoDrive+ is a demo-ready EV sustainability platform for the MBOT Fuel Not Found Hackathon 2026. It combines an ESP32 C++ hardware unit with a real-time website dashboard to make eco-driving behaviour visible, measurable, and rewarding.
 
-Developed for the **MBOT Fuel Not Found Hackathon 2026**.
+The core demo idea is simple: move the ESP32 prototype, watch the dashboard react, then show how driving behaviour becomes an eco-score, carbon savings, hardware feedback, EcoCoins, a growing CarbonTwin forest, and an Eco-City.
 
----
+## Project Direction
 
-## 🎯 Project Overview
+EcoDrive+ is designed to score strongly across problem understanding, creativity, technical execution, presentation, and sustainability impact.
 
-EcoDrive+ addresses the gap in electric vehicle (EV) dashboards. While standard dashboards focus purely on battery levels and range, EcoDrive+ highlights the driver's real-time environmental impact and guides them toward more efficient driving habits using gamification and hardware feedback.
+Key differentiators:
 
----
+- Real ESP32 sensor prototype instead of only a software mockup.
+- C++ firmware that calculates a local eco-score from motion data.
+- Live web dashboard for a polished pitching session.
+- Transparent carbon and energy calculations.
+- CarbonTwin forest and Eco-City Builder gamification.
+- Community challenges and fleet command centre for wider impact.
 
-## 📐 Architecture Overview
+## Main Modules
 
-The EcoDrive+ ecosystem consists of 5 core modules:
+### 1. Live Drive Dashboard
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     EcoDrive+ Platform                       │
-├──────────┬──────────┬───────────┬──────────┬─────────────────┤
-│ Module 1  │ Module 2 │ Module 3   │ Module 4 │    Module 5     │
-│ Driving   │CarbonTwin│ Eco-City   │Community │   Hardware      │
-│ Dashboard │ Forest   │ Builder +  │ & Social │   ESP32 Hub     │
-│           │ (Game)   │ Marketplace│(Ranking) │   (Sensors)     │
-└──────────┴──────────┴───────────┴──────────┴─────────────────┘
-```
+Shows live eco-score, speed, trip distance, energy estimate, CO2 saved, EcoCoins earned, hardware status, sensor stream, and driving advice.
 
----
+### 2. ESP32 Eco-Feedback Unit
 
-## 🚀 Key Modules & Features
+Uses ESP32 with MPU6050, optional NEO-6M GPS, OLED display, WS2812B LED strip, buzzer, and a mode button. The unit gives immediate feedback:
 
-### 1. 🚗 Real-Time Eco-Driving Dashboard
-* **Dynamic Eco-Score (0-100):** Calculated locally based on driving smoothness (acceleration standard deviation), speed consistency, and braking gentleness.
-* **Smart Driving Advice:** Rule-based instant recommendations (e.g., "Ease into throttle", "Downhill ahead - coast to regenerate").
-* **Energy-Efficient GPS Routing:** Calculates elevation changes, traffic stops, and drag penalties to find the path that consumes the least energy, rather than just the shortest route.
+- Green LED for smooth driving.
+- Amber/red LED for inefficient or aggressive driving.
+- Buzzer for harsh braking.
+- OLED status for score, warning, and reward messages.
 
-### 2. 🌳 CarbonTwin Forest (Gamification Core)
-* **Digital Twin Forest:** A virtual 3D/2.5D isometric forest that grows when you drive efficiently and wilts if driving is aggressive.
-* **Milestones & Wildlife:** Cumulative carbon savings unlock rare tree species, biomes (tropical, snow, cherry blossom), and local wildlife (birds, butterflies).
+### 3. Impact Engine
 
-### 3. 🏘️ Eco-City Builder (SimCity-Style Gameplay)
-* **Sustainable Metropolis:** Earn **EcoCoins** by driving efficiently and spend them to place buildings on an 8x8 grid.
-* **Building Catalog:** Solar farms, wind turbines, EV charging hubs, recycling centers, and green schools.
-* **Adjacency Bonuses:** Strategic building combinations (e.g., placing a Solar Farm next to an EV Charging Hub) increase passive coin generation.
+Converts telemetry into:
 
-### 4. 👥 Community Rankings & Goals
-* **Multi-tier Leaderboards:** Global, weekly sprint, campus zone, and friend-based rankings.
-* **Collaborative Goals:** Work with the UTAR community to hit collective carbon reduction milestones and unlock campus-wide rewards.
+- eco-score,
+- kWh estimate,
+- CO2 saved versus petrol baseline,
+- range impact,
+- EcoCoin rewards,
+- route energy comparison.
 
-### 5. 🔧 ESP32 Hardware Hub
-* **Real Sensors:** Integrates an ESP32 microcontroller with an **MPU6050 accelerometer/gyroscope** for motion tracking, a **NEO-6M GPS module** for speed/route tracking, and an **OLED display** for real-time dashboard updates.
-* **Visual & Audio Cues:** Color-changing WS2812B RGB LED strip (Green → Yellow → Red) and a buzzer provide immediate ambient alerts for aggressive driving habits.
+### 4. CarbonTwin Forest
 
----
+Efficient trips grow a virtual forest. Trees evolve from saplings to mature trees, and cumulative carbon savings unlock wildlife and rare biomes.
 
-## 🛠️ Hardware Wiring Diagram
+### 5. Eco-City Builder
 
-```
-                          ┌──────────────┐
-                          │    ESP32      │
-                          │              │
-   MPU6050 ──── I2C ─────│ GPIO21 (SDA) │
-   (Accel/Gyro)          │ GPIO22 (SCL) │
-                          │              │
-   OLED Display ── I2C ──│ (shared bus)  │
-   (SSD1306)              │              │
-                          │              │
-   GPS Module ── UART ────│ GPIO16 (RX)  │
-   (NEO-6M)               │ GPIO17 (TX)  │
-                          │              │
-   LED Strip ── Data ─────│ GPIO5        │
-   (WS2812B)              │              │
-                          │              │
-   Buzzer ────────────────│ GPIO18       │
-                          │              │
-   Button ────────────────│ GPIO4        │
-                          └──────────────┘
-```
+Drivers spend EcoCoins on an 8x8 sustainable city grid. Buildings include parks, solar farms, EV charging hubs, recycling centres, wind turbines, and eco-schools. Adjacency bonuses teach real sustainability concepts such as clean charging and circular economy.
 
----
+### 6. Community and Fleet Mode
 
-## 💻 Tech Stack
+Leaderboards, UTAR Green Week challenges, campus carbon goals, and a fleet command centre show how EcoDrive+ can scale beyond one driver.
 
-* **Hardware:** ESP32, MPU6050, NEO-6M GPS, SSD1306 OLED, WS2812B LED, Buzzer.
-* **Firmware:** C/C++ (Arduino IDE / PlatformIO).
-* **Communication:** MQTT over WiFi / WebSockets.
-* **Backend:** Node.js / Python Flask.
-* **Frontend:** React / Next.js, Three.js (for 3D city/forest visualizations), Leaflet/OpenStreetMap.
-* **Database:** Firebase / SQLite.
+## Recommended Stack
+
+| Layer | Technology |
+|---|---|
+| Firmware | C++ with Arduino framework or PlatformIO |
+| Hardware | ESP32, MPU6050, NEO-6M GPS, SSD1306 OLED, WS2812B LED, buzzer |
+| Website | Next.js, React, TypeScript, Tailwind CSS |
+| Backend | Node.js, TypeScript, WebSocket server |
+| Database | SQLite for local demo persistence |
+| Visuals | Recharts, Leaflet/OpenStreetMap, optional Three.js |
+
+## Repository Contents
+
+- `plan.md` - improved champion build plan.
+- `proposal.md` - source text for the proposal.
+- `output/pdf/TeamEcoDrive_Proposal.pdf` - generated proposal PDF.
+- `design-ui-blueprint.md` - Figma website UI blueprint and remaining screen specification.
+- `question/MBOT Hackathon Participant Handbook.pdf` - hackathon handbook.
+
+## Demo Flow
+
+1. Show the limitation of normal EV dashboards.
+2. Connect the ESP32 and open the Live Drive Dashboard.
+3. Hold the board steady to show smooth driving.
+4. Jolt the board to trigger hard-brake feedback.
+5. Return to smooth movement and earn EcoCoins.
+6. Show CarbonTwin forest and Eco-City growth.
+7. Show community challenge and fleet impact views.
+
