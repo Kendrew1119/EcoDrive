@@ -21,75 +21,83 @@ Instead, we built the **Eco-City Builder (SimCity-Style)** right into the car's 
 At the end of the day, our **Community Leaderboard** makes drivers fully aware of how much carbon they actually saved compared to their friends and campus peers. It turns eco-driving from a boring chore into a deeply engaging, rewarding habit.
 
 ## 3. Technical Implementation & Use of Tools
-Technically, the system connects hardware and software together to create a seamless experience. We are using the ESP32 microcontroller provided for the hackathon as the brain of the car unit. We are hooking it up to an MPU6050 accelerometer and gyroscope to track exactly how the car is moving. This is super important because it detects things like hard braking or fast acceleration, which are the main culprits of energy waste. We are also using a NEO-6M GPS module to track the speed and distance.
+Technically, our demo uses a **two-app architecture** connected through an ESP32 microcontroller, creating a complete real-time data pipeline that we can demonstrate live on stage.
 
-For our use of tools, we are relying on open-source frameworks to build this out efficiently. The ESP32 firmware will be written in C/C++ using the Arduino IDE. For the backend, we are going to use Node.js or Python Flask to handle all the live data, and we will probably use Firebase for the database so we can get that real-time syncing without too much hassle. For the frontend cockpit UI, we are using React or Next.js to create a dark-glass, premium vehicle interface that truly looks like a modern car screen.
+**App 1: Driving Simulator (iPad)**
+The first app is an interactive driving simulator running on an iPad, laid horizontally like an F1 racing game. It has a route selection map where the driver chooses between a fast route and an eco-friendly route, followed by a 2D driving game with virtual gas and brake pedals. Every 200 milliseconds, the simulator sends raw driving data (throttle position, brake force, current speed) over WiFi to the ESP32.
+
+**ESP32 Hardware (The Car Brain)**
+The ESP32 microcontroller sits on the table during the pitch, acting as the "car's brain." It receives the raw driving data from the iPad, then processes the eco-score locally using our transparent formula. Based on the result, it drives physical hardware outputs: an RGB LED strip that glows green for smooth driving and flashes red for harsh braking, a buzzer that beeps on dangerous events, and an OLED display showing the live score. After processing, it forwards the results to our main dashboard.
+
+**App 2: Main Dashboard (Laptop/Monitor)**
+The second app is the full cockpit dashboard running on a laptop or external monitor. It receives the processed telemetry from the ESP32 and displays everything in real-time: the eco-score gauge, EcoCoins earned, carbon saved, the Eco-City Builder, the Rewards Marketplace, and the Community Leaderboard.
+
+For our use of tools, we are relying on open-source frameworks. The ESP32 firmware is written in C/C++ using the Arduino IDE. For the web apps, we are using Next.js with React for the UI, Leaflet for maps, and WebSocket for real-time communication. Everything runs locally on the same WiFi network — no internet dependency during the pitch.
 
 ## 4. Hardware Data Pipeline
-How does the hardware actually talk to the app? It is basically a constant loop of data. The ESP32 reads the MPU6050 sensor at 10Hz and the GPS at 1Hz. It then calculates the local eco-score right there on the device. We wanted the calculation to happen locally so there is no lag for the driver. 
+The data flows through three nodes in a continuous real-time loop. The iPad Driving Simulator sends raw input data (throttle, brake, speed) as JSON packets over WiFi WebSocket to the ESP32 every 200 milliseconds.
 
-Once calculated, the ESP32 updates its own OLED display and changes the LED strip color. Then, every 2 seconds, it packages all this data into a JSON packet and sends it over WiFi using MQTT or WebSockets to our cloud server. 
+The ESP32 receives this data and immediately processes it through our eco-score algorithm. It calculates how smoothly the user is driving, checks for harsh braking events, and computes the energy efficiency. Based on the result, it updates the physical hardware: the LED strip changes colour, the buzzer triggers if needed, and the OLED updates the score.
 
-A sample of the data packet looks something like this:
+After processing, the ESP32 packages the results into a new JSON telemetry packet and forwards it over WiFi to the Main Dashboard web app:
+
 ```json
 {
-  "device_id": "esp32_001",
-  "eco_score": 82,
-  "trip_distance_m": 3420,
-  "hard_brakes": 1,
-  "acceleration": { "x": 0.12, "y": -0.05, "z": 9.81 }
+  "deviceId": "ecodrive-demo-01",
+  "ecoScore": 84,
+  "speedKmh": 52.3,
+  "event": "smooth_segment",
+  "coinsEarned": 5,
+  "totalCoins": 245,
+  "energyKwh": 0.18,
+  "co2SavedKg": 0.92
 }
 ```
-When the server receives this packet, it instantly updates the cockpit screen, adds to your EcoCoin balance, and shifts your position on the community leaderboard. 
+When the Dashboard receives this packet, it instantly updates the eco-score gauge, adds to the EcoCoin balance, scrolls the event feed, and shifts the leaderboard position. The entire pipeline — from pressing the gas pedal on the iPad to seeing the dashboard update — happens in under 500 milliseconds.
 
-For the hardware feedback in the car, we are using an OLED display to show the live score, an RGB LED strip that changes from green to red if you are driving badly, and a buzzer that beeps if you do a sudden hard brake. 
+## 5. Expected Demo: Two-Screen Live Demonstration
+For our live presentation, we will set up a **two-screen demo** with the ESP32 hardware visible between them. The iPad will be placed horizontally showing the Driving Simulator, the ESP32 board with its LED strip and OLED will sit on the table, and a laptop or monitor behind will display the Main Dashboard.
 
-## 5. Expected Demo: Live Demonstration
-For our live presentation, we will definitely be doing a functional hardware demonstration to show exactly how the system reacts in real-time. We will have the ESP32 and all the sensors mounted on a small prototype board to act as the "car unit."
+To start the demo, we will first open the **Eco-Route Planner** on the iPad Simulator. This shows a map with two routes to a destination. We will show the judges the contrast: Route A is fast but high-emissions, Route B is the Eco-Route earning +50 EcoCoins. We tap Route B to start the driving game.
 
-Since we cannot physically drive a car during the pitch, we will use an interactive simulator mode. For the visual dashboard itself, **we will demo it using an iPad during the pitching**. By mounting the iPad horizontally, it will perfectly simulate a real 16:9 widescreen EV center console. 
+Once the driving game starts on the iPad, we will press the virtual gas pedal gently. The judges will immediately see the ESP32 on the table light up green, and the Dashboard on the laptop will show the eco-score climbing. If we then slam the virtual brake pedal, the ESP32 buzzer will beep, the LED strip will flash red, and the Dashboard will show the eco-score dropping instantly. This three-way real-time reaction across iPad, hardware, and laptop creates a powerful visual effect.
 
-To start the demo, we will first open the **Eco-Route Planner** on the iPad. This uses an integrated map (like Leaflet or Google Maps) to display two path selections to a destination. We will show the judges the stark contrast: the fastest route uses more energy, while the "Eco-Route" takes slightly longer but rewards the user with a massive upfront EcoCoin bonus for saving carbon. We physically tap to select the Eco-Route, which transitions the app into the driving dashboard.
-
-Once driving, on the iPad (or using a connected keyboard), we will have a set of "virtual pedals" (like playing an F1 racing game). When we press the virtual gas pedal gently, the ESP32 registers smooth acceleration: the LED stays green. If we smash the virtual brake pedal, the judges will instantly hear the hardware buzzer go off, the LED will turn red, and the app will show the Eco-Score dropping. This makes the demo interactive and easy to understand.
-
-After demonstrating the driving mechanics, we will switch the iPad to the **Eco-City Builder** mode to show the gamification in action. We will take the Raw EcoCoins we just earned from the "smooth driving" segment and use them to purchase a Solar Farm on the 8x8 city grid. The judges will immediately see our "Passive Yield Coin" generation rate increase. Next, we will navigate to the built-in **Rewards Marketplace** and show how those accumulated Yield Coins can be directly exchanged for a real-world reward, like a simulated QR code for a free campus coffee. Finally, we will pull up the **Community Leaderboard** to show how the driver's new eco-score and carbon savings just bumped them past their friends. This perfectly wraps up the demo by proving the full loop: from physical pedal input, to eco-score calculation, to city building, real-world impact, and social competition.
+After demonstrating the driving mechanics, we will switch the Dashboard to the **Eco-City Builder** mode. We will take the Raw EcoCoins we just earned from driving and use them to purchase a Solar Farm on the 8x8 city grid. The judges will see our "Passive Yield Coin" generation rate increase. Next, we will navigate to the **Rewards Marketplace** and show how Yield Coins can be exchanged for a real-world reward, like a simulated QR code for a free campus coffee. Finally, we will pull up the **Community Leaderboard** to show how the driver just climbed the rankings. This wraps up the demo by proving the complete loop: from iPad pedal input, through ESP32 hardware processing, to dashboard visualization, city building, real-world impact, and social competition.
 
 ## 6. Impact, Targeted Users, and Future Improvements
 The targeted users are basically anyone who owns an EV, but we are also targeting campus fleets and new EV buyers. By turning eco-driving into a game, we are using psychology to make people actually care about their driving habits. Just like how the movie "The Big Short" showed that people are driven by incentives, EcoDrive+ gives drivers positive incentives to do the right thing. 
 
-Going forward, we would definitely want to partner with real businesses to make the EcoCoins even more valuable, like getting coffee discounts on campus. We also want to improve the system by adding a real AI machine learning model that can analyze long-term driving patterns. In conclusion, EcoDrive+ is a real eye-opener for what EV dashboards should look like. We won't just tell drivers they are saving carbon; we will let them see it, feel it, and build a whole virtual world with it.
+Going forward, we would definitely want to partner with real businesses to make the EcoCoins even more valuable, like getting coffee discounts on campus. We also want to improve the system by adding a real AI machine learning model that can analyze long-term driving patterns. In production, the iPad simulator would be replaced by real MPU6050 and GPS sensors on the ESP32, reading actual vehicle motion — but the processing pipeline remains exactly the same. In conclusion, EcoDrive+ is a real eye-opener for what EV dashboards should look like. We won't just tell drivers they are saving carbon; we will let them see it, feel it, and build a whole virtual world with it.
 
 ---
 
 ## 7. Pitching Script (For Hackathon Presentation)
 
-*(Hold up the iPad showing the Cockpit UI in one hand, and the ESP32 board in the other)*
+*(iPad on table showing Driving Simulator. ESP32 board visible with LEDs. Laptop behind showing Dashboard.)*
 
 **Intro:**
 "Good morning, judges! Let me ask you a question: why are EV dashboards so boring? People buy EVs to save the earth, but when they drive, all they see is a battery percentage and a speedometer. There is absolutely no emotional connection to the carbon they are actually saving. Today, we are changing that. Meet **EcoDrive+**, a premium in-car cockpit that turns saving the planet into an addictive, rewarding habit."
 
 **The Problem & Solution (Route Example):**
-"Let's be honest, drivers have bad habits. *(Open the Eco-Route Planner map on the iPad)* Let's say you are driving home. Look at this integrated map. Route A takes 18 minutes, but it's full of traffic lights and sharp corners. You're constantly braking and accelerating, wasting tons of energy. Route B takes 20 minutes, it's slightly further, but it's a smooth, open road that generates way less carbon emissions. How do we convince a driver to take that 20-minute route? 
-Simple: **We pay them in EcoCoins.** EcoDrive+ calculates your carbon savings in real-time and rewards you for making the green choice."
+"Let's be honest, drivers have bad habits. *(Open the Eco-Route Planner map on the iPad)* Let's say you are driving home. Look at this map. Route A takes 18 minutes, but it's full of traffic lights and sharp corners. You're constantly braking and accelerating, wasting tons of energy. Route B takes 20 minutes, it's slightly further, but it's a smooth, open road that generates way less carbon emissions. How do we convince a driver to take that 20-minute route? 
+Simple: **We pay them in EcoCoins.** *(Tap to select Route B. Driving game starts on iPad.)* EcoDrive+ calculates your carbon savings in real-time and rewards you for making the green choice."
 
 **The Gamification vs. Instant Reward Logic:**
 "Now, you might ask: why not just let users use those EcoCoins to instantly redeem a coffee discount? Why do we need a game? 
-Because instant gratification is purely transactional—it gets boring fast! Instead, we built an **Eco-City Builder** right into the car's screen *(point to iPad)*. You have a choice: you can buy a small coffee discount now, OR you can invest those coins to build a Solar Farm in your virtual city. That Solar Farm will generate passive coins every day, allowing you to unlock massive real-world rewards later. This teaches long-term sustainable thinking and keeps users completely hooked on the app."
+Because instant gratification is purely transactional—it gets boring fast! Instead, we built an **Eco-City Builder** right into the car's screen. You have a choice: you can buy a small coffee discount now, OR you can invest those coins to build a Solar Farm in your virtual city. That Solar Farm will generate passive coins every day, allowing you to unlock massive real-world rewards later. This teaches long-term sustainable thinking and keeps users completely hooked on the app."
 
-**The Hardware Demo:**
-"And this isn't just software. We built the actual hardware integration *(point to ESP32 board)*. This board acts as the car's brain. 
-Since we can't drive a car on stage, we built a virtual pedal simulator right here on the iPad, just like an F1 racing game. 
-*(Press the virtual pedal gently)* Look, when I press the gas smoothly, the ESP32 LED turns green, and I earn coins for my city. 
-*(Hit the virtual brake hard)* But if I brake harshly! *(Buzzer beeps, LED turns red)* You get instant physical feedback from the hardware, and the iPad dashboard drops my eco-score immediately."
+**The Two-Screen Hardware Demo:**
+"And this isn't just software. We built an entire two-app data pipeline with real hardware in the middle. *(Point to ESP32 board on table)* This ESP32 board is the car's brain. 
+Watch this: *(Press the gas pedal gently on the iPad driving game)* I'm driving smoothly. Look at the ESP32 — the LED is green. And look at the Dashboard on the laptop — my eco-score is climbing, coins are being earned.
+*(Slam the brake pedal hard on the iPad)* But if I brake harshly! *(Buzzer beeps, LED flashes red)* You hear that? The hardware reacts instantly. And the Dashboard shows my eco-score just dropped. That's a real-time pipeline: iPad to ESP32 to Dashboard, all in under half a second."
 
 **The Game & Marketplace Demo:**
-"*(Switch the iPad to the Eco-City Builder mode)* 
-And here is the best part: the gamification. I just earned Raw EcoCoins from that smooth driving segment. Watch as I spend them right now to build a Solar Farm in my city. *(Tap to build Solar Farm)* Look at that—my Yield Coin generation just went up! 
-*(Switch to Rewards Marketplace mode)*
+"*(Switch to the Eco-City Builder on the Dashboard)* 
+And here is the best part. I just earned Raw EcoCoins from that smooth driving segment. Watch as I spend them right now to build a Solar Farm in my city. *(Tap to build Solar Farm)* Look at that—my Yield Coin generation just went up! 
+*(Switch to Rewards Marketplace)*
 And what does that mean in the real world? It means I can go to the Rewards Marketplace right here, take those Yield Coins, and instantly redeem a QR code for a free coffee on campus. 
-*(Switch to Community Leaderboard mode)*
-Oh, and one last thing. Take a look at the Community Leaderboard. That smooth driving segment just bumped me up to 2nd place on campus for carbon saved this week. This is the complete loop: from a physical pedal, to eco-scores, to city building, real-world rewards, and social competition!"
+*(Switch to Community Leaderboard)*
+Oh, and one last thing. Take a look at the Community Leaderboard. That smooth driving just bumped me up to 2nd place on campus for carbon saved this week. This is the complete loop: from an iPad pedal, through real ESP32 hardware, to dashboard visualization, city building, real-world rewards, and social competition!"
 
 **Conclusion:**
-"In conclusion, EcoDrive+ isn't just a dashboard. It’s an ecosystem that uses psychology, hardware, and gamification to make drivers deeply aware of their carbon footprint. We don't just tell people to drive green—we make them want to. Thank you!"
+"In conclusion, EcoDrive+ isn't just a dashboard. It's an ecosystem that uses psychology, hardware, and gamification to make drivers deeply aware of their carbon footprint. We don't just tell people to drive green—we make them want to. Thank you!"

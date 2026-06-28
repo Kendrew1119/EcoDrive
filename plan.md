@@ -1,21 +1,23 @@
 # EcoDrive+ Champion Build Plan
 ## Drive Green. Earn Green. Grow Green.
 
-EcoDrive+ is a live EV sustainability platform that turns driving behaviour into visible climate impact. The final demo combines a polished web dashboard with an ESP32 C++ hardware prototype, so judges can see sensor data move from a physical device into real-time carbon savings, route advice, rewards, and a gamified green city.
+EcoDrive+ is a live EV sustainability platform that turns driving behaviour into visible climate impact. The final demo uses a **two-app architecture** designed specifically for hackathon pitching: an interactive **Driving Simulator** on an iPad feeds real-time input to an **ESP32 hardware brain**, which processes eco-scores and triggers physical feedback (LEDs, buzzer, OLED), then forwards the results to a **Main Dashboard web app** on a laptop screen showing gamification, rewards, and leaderboards.
 
-This plan assumes enough time and resources to build a complete demo-ready codebase while still keeping the pitch believable for the MBOT Fuel Not Found Hackathon 2026.
+This plan is built to produce a working demo system for the MBOT Fuel Not Found Hackathon 2026 pitching stage.
 
 ---
 
 ## 1. Winning Position
 
-Most EV dashboard ideas stop at displaying numbers. EcoDrive+ is designed as a behaviour-change system:
+Most EV dashboard ideas stop at displaying numbers. EcoDrive+ is designed as a behaviour-change system, and the demo proves the full loop end-to-end:
 
-1. **Sense** driving behaviour with ESP32, MPU6050, GPS, LEDs, OLED, and buzzer.
-2. **Score** eco-driving locally with transparent formulas that judges can understand.
-3. **Explain** the impact through real-time carbon savings and route energy estimates.
-4. **Reward** better driving with EcoCoins, city growth, streaks, and achievements.
-5. **Scale** from one driver to campus fleets, community challenges, and urban planning insights.
+1. **Drive** using an interactive iPad simulator that feels like an F1 racing game.
+2. **Process** the driving input through a real ESP32 microcontroller that calculates eco-scores locally.
+3. **Feel** instant physical feedback: green LEDs for smooth driving, red LEDs and buzzer for harsh braking.
+4. **See** the results live on the Main Dashboard: eco-score gauge, EcoCoins earned, carbon saved.
+5. **Play** by investing EcoCoins into an Eco-City Builder that generates passive Yield Coins.
+6. **Redeem** Yield Coins in a Rewards Marketplace for real-life rewards like coffee discounts.
+7. **Compete** on a Community Leaderboard that ranks drivers by carbon impact.
 
 The core pitch line:
 
@@ -28,51 +30,93 @@ The core pitch line:
 | Criteria | Marks | EcoDrive+ Strategy |
 |---|---:|---|
 | Problem Definition & Understanding | 15 | Frame the problem as a visibility and behaviour feedback gap in EV usage, not merely a missing dashboard feature. |
-| Creativity & Innovation | 20 | Combine sensor feedback, carbon accounting, route energy simulation, city-building gamification, and community carbon goals. |
-| Technical Execution | 25 | Show a working ESP32 C++ prototype streaming to a live website with WebSocket/MQTT-style data, formulas, and dashboard updates. |
-| Presentation & Communication | 20 | Use a structured demo: calm driving, harsh acceleration, hard braking, route choice, city reward, leaderboard movement. |
+| Creativity & Innovation | 20 | Two-app architecture with hardware-in-the-loop: driving simulator feeds ESP32 which feeds dashboard. Plus city-building gamification and real-life rewards. |
+| Technical Execution | 25 | Show a working ESP32 receiving live data from a driving simulator, processing eco-scores, driving physical outputs, and streaming results to a dashboard web app — all in real-time. |
+| Presentation & Communication | 20 | Two-screen live demo: iPad driving game + laptop dashboard updating simultaneously while ESP32 LEDs and buzzer react on the table. |
 | Sustainability & Impact | 20 | Translate every trip into kg CO2 saved, kWh avoided, money saved, and campus-wide reduction potential. |
 
 ---
 
-## 3. Demo-First Product Scope
+## 3. Two-App Demo System Scope
 
-### 3.1 Must-Build Final Demo
+### 3.1 Overview
 
-The final demo should be impressive without depending on a real car.
+The pitching demo consists of three connected components:
 
-**Hardware unit**
-- ESP32 running C++ firmware.
-- MPU6050 accelerometer/gyroscope for movement and harsh-event detection.
-- NEO-6M GPS if outdoor signal is available; simulated GPS fallback for indoor demo.
-- SSD1306 OLED showing eco-score, status, and event alerts.
-- WS2812B LED strip showing green/yellow/red behaviour feedback.
-- Buzzer for harsh brake or unsafe acceleration.
-- Push button to switch demo modes.
+```text
+┌─────────────────────────────┐
+│  APP 1: Driving Simulator   │  ← iPad (horizontal, like F1 game)
+│  - Route selection map       │
+│  - 2D driving game view      │
+│  - Virtual gas pedal         │
+│  - Virtual brake pedal       │
+│  - Sends raw input via WiFi  │
+└──────────────┬──────────────┘
+               │ JSON over WiFi (WebSocket)
+               │ { "throttle": 0.7, "brake": 0.0, "speed": 52.3 }
+               v
+┌─────────────────────────────┐
+│  ESP32 (The Car Brain)      │  ← Physical hardware on table
+│  - Receives simulator input  │
+│  - Computes eco-score locally │
+│  - Drives LED strip (G/Y/R)  │
+│  - Triggers buzzer on harsh  │
+│  - Updates OLED display       │
+│  - Forwards processed data    │
+└──────────────┬──────────────┘
+               │ JSON over WiFi (WebSocket)
+               │ { "ecoScore": 84, "coinsEarned": 5, "event": "smooth" }
+               v
+┌─────────────────────────────┐
+│  APP 2: Main Dashboard      │  ← Laptop/Monitor
+│  - Live eco-score gauge       │
+│  - Trip metrics & event feed  │
+│  - Eco-City Builder           │
+│  - Rewards Marketplace        │
+│  - Community Leaderboard      │
+│  - Fleet Command Centre       │
+└─────────────────────────────┘
+```
 
-**Website**
-- Live dashboard receiving telemetry.
+### 3.2 App 1: Driving Simulator (iPad)
+
+A web app optimised for iPad landscape (like an F1 racing game):
+
+- **Route Selection Screen**: Leaflet/OpenStreetMap showing two routes. Eco-Route highlighted green with EcoCoin bonus. Tap to start driving.
+- **Driving Game Screen**: 2D top-down road view with the car moving forward. Two large touch zones at the bottom: gas pedal (right) and brake pedal (left). Speed indicator. The road has curves, traffic lights, and stop zones that test driving smoothness.
+- **Data Output**: Every 200ms, sends a JSON packet to the ESP32 over WiFi WebSocket containing throttle position, brake force, current speed, and steering angle.
+
+### 3.3 ESP32 Hardware Unit
+
+The ESP32 acts as the "car brain" sitting on the table during the pitch:
+
+- **Input**: Receives raw driving data from the Simulator App via WiFi WebSocket.
+- **Processing**: Computes the eco-score locally using the same formulas as a real EV would. This proves embedded computing capability.
+- **Physical Output**:
+  - SSD1306 OLED showing live eco-score and event alerts.
+  - WS2812B LED strip showing green/yellow/red behaviour feedback.
+  - Buzzer for harsh brake or unsafe acceleration warnings.
+- **Data Output**: Forwards the processed telemetry (eco-score, coins earned, events, carbon saved) to the Main Dashboard via WiFi WebSocket.
+
+### 3.4 App 2: Main Dashboard (Laptop/Monitor)
+
+A web app running on a laptop or external monitor:
+
+- Live dashboard receiving processed telemetry from ESP32.
 - Big eco-score gauge.
 - Trip metrics: speed, distance, kWh estimate, CO2 saved, EcoCoins earned.
 - Live event feed: acceleration, harsh brake, smooth segment, reward.
-- Route comparison: fastest route vs eco route.
-- Eco-City mini simulation (with passive coin yield for real-life rewards).
+- Eco-City Builder (with passive coin yield for real-life rewards).
+- Rewards Marketplace for redeeming Yield Coins.
 - Community leaderboard and campus challenge.
 - Fleet/control-room view for judges to see scalability.
 
-**Backend**
-- Node.js with TypeScript for fast real-time demo development.
-- WebSocket server for browser updates.
-- MQTT-compatible adapter for ESP32 messages, or direct WebSocket/HTTP fallback.
-- SQLite for local demo persistence, with seed data for trips, users, city state, and leaderboard.
+### 3.5 Nice-To-Have Expansion
 
-### 3.2 Nice-To-Have Expansion
-
-- Weather-aware route energy adjustment.
-- Green charging station finder.
+- 3D first-person driving view instead of 2D top-down.
+- Weather effects on the simulator road.
 - Trip replay heatmap.
 - Digital carbon certificate PDF.
-- Admin dashboard for campus EV fleet.
 - AI-ready insight layer for future personalized coaching.
 
 ---
@@ -81,48 +125,57 @@ The final demo should be impressive without depending on a real car.
 
 | Layer | Choice | Why It Fits Demo and Pitch |
 |---|---|---|
-| Firmware | C++ with Arduino framework / PlatformIO | Best for ESP32 demo, sensors, OLED, LEDs, and judges familiar with Arduino workshop. |
-| Website | Next.js + TypeScript | Fast to build, polished for pitching, easy API/WebSocket integration. |
-| UI | React, Tailwind CSS, Recharts, Leaflet, Three.js optional | Strong visual dashboard, charts, maps, and possible 3D/2.5D city. |
-| Backend | Node.js + TypeScript + Express/Fastify + WebSocket | One language for web/backend, real-time telemetry is simple to show. |
-| Database | SQLite + Prisma or Drizzle | Reliable local demo, no internet dependency, easy seeding. |
-| Hardware Protocol | JSON over WiFi, WebSocket or MQTT-style topics | Easy to inspect and explain during judging. |
+| Simulator App | Next.js or plain HTML/JS + Canvas/Phaser.js | Fast to build a 2D driving game, responsive on iPad Safari. |
+| Dashboard App | Next.js + TypeScript | Polished dashboard, easy WebSocket integration. |
+| UI | React, Tailwind CSS, Recharts, Leaflet | Strong visual dashboard, charts, maps, city grid. |
+| Backend/Relay | Node.js + WebSocket server | Bridges ESP32 ↔ Dashboard communication. Can also serve both apps. |
+| Database | SQLite or in-memory JSON | Reliable local demo, no internet dependency, easy seeding. |
+| Firmware | C++ with Arduino framework / PlatformIO | Best for ESP32 demo, OLED, LEDs, buzzer, WiFi WebSocket client. |
+| Hardware Protocol | JSON over WiFi WebSocket | Easy to inspect and explain during judging. |
 | Maps | Leaflet + OpenStreetMap tiles | Free, flexible route visuals. |
-| Deployment | Local laptop demo + optional Vercel/cloud mirror | Local reliability with public showcase option. |
+| Deployment | Local laptop serving both web apps + ESP32 on same WiFi | All local, no internet dependency during pitch. |
 
 ---
 
-## 5. System Architecture
+## 5. System Architecture (Detailed Data Flow)
 
 ```text
-ESP32 Sensor Unit
-  - MPU6050 @ 20 Hz
-  - GPS @ 1 Hz or simulator mode
-  - Eco-score computed locally
-  - OLED, LED strip, buzzer feedback
-        |
-        | JSON telemetry every 500 ms to 2 s
-        v
-Realtime Gateway
-  - WebSocket/MQTT adapter
-  - validates packets
-  - stores trip events
-        |
-        v
-Impact Engine
-  - eco-score breakdown
-  - carbon saved vs petrol baseline
-  - kWh estimate
-  - EcoCoin reward rules
-  - route energy comparison
-        |
-        v
-Next.js Demo Website
-  - driver dashboard
-  - route planner
-  - Eco-City builder
-  - leaderboard
-  - fleet dashboard
+iPad (Driving Simulator App)
+  - Route selection → user picks Eco-Route
+  - Driving game starts
+  - Sends every 200ms:
+    { "throttle": 0.0-1.0, "brake": 0.0-1.0, "speed": km/h, "steering": -1.0 to 1.0 }
+         |
+         | WiFi WebSocket to ESP32
+         v
+ESP32 Firmware
+  - SimulatorReceiver listens on WebSocket
+  - EcoScore engine processes:
+    - acceleration smoothness from throttle changes
+    - braking harshness from brake force
+    - speed consistency from speed variance
+  - Computes eco-score (0-100) locally
+  - Drives physical outputs:
+    - LED: green (85+), yellow (65-84), amber (45-64), red (<45)
+    - Buzzer: beep on harsh brake
+    - OLED: score + event text
+  - Calculates EcoCoins earned, CO2 saved
+  - Forwards processed telemetry to Dashboard:
+    { "ecoScore": 84, "coinsEarned": 5, "co2SavedKg": 0.12, "event": "smooth_segment" }
+         |
+         | WiFi WebSocket to Backend/Dashboard
+         v
+Backend WebSocket Server (on laptop)
+  - Relays ESP32 telemetry to Dashboard App
+  - Manages game state (city, coins, leaderboard)
+         |
+         v
+Laptop (Main Dashboard App)
+  - Live eco-score gauge updates
+  - Trip metrics update
+  - Event feed scrolls
+  - EcoCoins balance increases
+  - Eco-City, Marketplace, Leaderboard all live
 ```
 
 ---
@@ -133,13 +186,12 @@ Next.js Demo Website
 
 | Component | Purpose |
 |---|---|
-| ESP32 | Main controller and WiFi communication. |
-| MPU6050 | Detect acceleration, harsh braking, sharp turning, and vibration. |
-| NEO-6M GPS | Track speed, distance, and route position when signal is available. |
-| SSD1306 OLED | Show live eco-score and warnings. |
-| WS2812B LED strip | Ambient colour feedback: green, yellow, orange, red. |
-| Buzzer | Short warning tones for harsh events. |
-| Push button | Switch between live sensor, indoor simulator, and judge-interactive mode. |
+| ESP32 | Main controller, WiFi WebSocket client/server. |
+| SSD1306 OLED | Show live eco-score and event alerts received from processing. |
+| WS2812B LED strip | Ambient colour feedback: green, yellow, orange, red based on eco-score. |
+| Buzzer | Short warning tones for harsh braking events. |
+
+> **Note**: MPU6050 and GPS are NOT used in the demo. The ESP32 receives driving data from the Simulator App instead of physical sensors. This is intentional — it proves the same processing pipeline works whether data comes from real sensors or a simulator.
 
 ### 6.2 C++ Module Design
 
@@ -147,14 +199,13 @@ Next.js Demo Website
 /firmware
   src/
     main.cpp
-    sensors/Mpu6050Reader.cpp
-    sensors/GpsReader.cpp
-    scoring/EcoScore.cpp
-    feedback/OledView.cpp
-    feedback/LedFeedback.cpp
-    feedback/BuzzerFeedback.cpp
-    network/TelemetryClient.cpp
-    demo/DemoMode.cpp
+    input/SimulatorReceiver.cpp     ← NEW: listens for WebSocket data from iPad
+    scoring/EcoScore.cpp            ← Same eco-score logic
+    feedback/OledView.cpp           ← Same OLED output
+    feedback/LedFeedback.cpp        ← Same LED output
+    feedback/BuzzerFeedback.cpp     ← Same buzzer output
+    output/TelemetryForwarder.cpp   ← NEW: sends processed data to Dashboard
+    network/WifiManager.cpp         ← WiFi connection management
 ```
 
 ### 6.3 Local Eco-Score Formula
@@ -166,39 +217,48 @@ eco_score =
   speed_score      * 0.20 +
   cornering_score  * 0.15
 
-smoothness_score = clamp(100 - acceleration_std_dev * 18, 0, 100)
-braking_score    = clamp(100 - hard_brakes_per_km * 28, 0, 100)
+smoothness_score = clamp(100 - throttle_change_rate * 18, 0, 100)
+braking_score    = clamp(100 - harsh_brakes_count * 28, 0, 100)
 speed_score      = clamp(100 - speed_variance_ratio * 90, 0, 100)
-cornering_score  = clamp(100 - sharp_turns_per_km * 20, 0, 100)
+cornering_score  = clamp(100 - steering_jerk * 20, 0, 100)
 ```
 
 Why this works for judging:
 - It is transparent and explainable.
-- It runs on-device, reducing latency.
-- It demonstrates real embedded logic, not just a website simulation.
+- It runs on-device, proving real embedded logic.
+- The same formula would work with real sensor data in production.
 
-### 6.4 Telemetry Packet
+### 6.4 Simulator Input Packet (iPad → ESP32)
+
+```json
+{
+  "throttle": 0.65,
+  "brake": 0.0,
+  "speed": 52.3,
+  "steering": 0.12,
+  "timestamp": 1719648000
+}
+```
+
+### 6.5 Processed Telemetry Packet (ESP32 → Dashboard)
 
 ```json
 {
   "deviceId": "ecodrive-demo-01",
-  "mode": "sensor",
-  "timestamp": 1719648000,
-  "speedKmh": 48.2,
-  "distanceM": 1340,
-  "accel": { "x": 0.14, "y": -0.06, "z": 9.79 },
-  "gyro": { "x": 0.01, "y": 0.02, "z": 0.04 },
-  "gps": { "lat": 4.3394, "lng": 101.1428, "alt": 120.0 },
   "ecoScore": 84,
+  "speedKmh": 52.3,
   "event": "smooth_segment",
   "hardBrakes": 0,
-  "hardAccels": 1,
+  "coinsEarned": 5,
+  "totalCoins": 245,
   "energyKwh": 0.18,
-  "co2SavedKg": 0.92
+  "co2SavedKg": 0.92,
+  "ledState": "green",
+  "timestamp": 1719648000
 }
 ```
 
-### 6.5 Hardware Feedback States
+### 6.6 Hardware Feedback States
 
 | Eco-Score / Event | LED | OLED | Buzzer |
 |---|---|---|---|
@@ -207,41 +267,55 @@ Why this works for judging:
 | 45-64 | Amber | "Ease acceleration" | Optional short beep |
 | Below 45 | Red | "Aggressive driving" | Warning beep |
 | Harsh brake | Red flash | "Hard brake detected" | Double beep |
-| Judge mode reward | Green sparkle | "+ EcoCoins" | Celebration chirp |
+| Coin milestone | Green sparkle | "+ EcoCoins" | Celebration chirp |
 
 ---
 
-## 7. Website Demonstration Pages
+## 7. App 1: Driving Simulator Pages (iPad)
 
-The website should open directly into the working dashboard, not a marketing landing page.
+### 7.1 Route Selection Screen
 
-### 7.1 Live Drive Dashboard
+Purpose: let the driver choose between a fast route and an eco route before driving.
+
+Required UI:
+- Leaflet/OpenStreetMap showing the area around the destination.
+- Two route overlays: Route A (red, fast, high emissions) and Route B (green, eco, lower emissions).
+- Route comparison cards: time, distance, estimated CO2, EcoCoin bonus.
+- Large "Start Driving" button that transitions to the driving game.
+
+### 7.2 Driving Game Screen
+
+Purpose: simulate driving behaviour that feeds real data to the ESP32.
+
+Required UI:
+- 2D top-down road view with the car moving forward automatically.
+- Road has curves, traffic lights, intersections, and smooth highway sections.
+- Left zone: brake pedal (large touch area). Press harder = harder braking.
+- Right zone: gas pedal (large touch area). Press harder = faster acceleration.
+- Top HUD: current speed, distance travelled, mini eco-score indicator.
+- Visual feedback: screen edges flash red on harsh brake, green pulse on smooth driving.
+
+---
+
+## 8. App 2: Main Dashboard Pages (Laptop/Monitor)
+
+The dashboard should open directly into the working live view, not a marketing landing page.
+
+### 8.1 Live Drive Dashboard
 
 Purpose: show the hardware-to-software connection instantly.
 
 Required UI:
-- Real-time eco-score gauge.
-- Connection status pill: ESP32 live / simulator / offline.
+- Real-time eco-score gauge (updates as ESP32 sends data).
+- Connection status pill: ESP32 connected / disconnected.
 - Speed, distance, energy used, CO2 saved, EcoCoins.
 - Driving advice panel.
-- Sensor stream mini chart.
-- Event feed.
-- OLED/LED virtual mirror showing what the hardware is displaying.
+- Live event feed.
+- Hardware mirror: virtual OLED/LED showing what the physical ESP32 is displaying.
 
-### 7.2 Eco Route Planner
+### 8.2 Eco-City Builder (Investment Mechanics)
 
-Purpose: show technical depth beyond sensor display.
-
-Required UI:
-- Origin/destination input.
-- Map with fastest route and eco route.
-- Route comparison cards: time, distance, kWh, estimated CO2, stops, elevation.
-- Explanation panel: "Eco route is 4 minutes longer but saves 0.7 kWh."
-- Weather and traffic modifiers as future-ready options.
-
-### 7.3 Eco-City Builder (Investment Mechanics)
-
-Purpose: strongest creative differentiator and long-term retention. 
+Purpose: strongest creative differentiator and long-term retention.
 
 Required UI:
 - 8x8 city grid.
@@ -251,7 +325,17 @@ Required UI:
 - Adjacency bonuses highlighted when placing buildings.
 - City stage progress: Barren Land to Eco-Metropolis.
 
-### 7.5 Community Challenge
+### 8.3 Rewards Marketplace
+
+Purpose: prove that game coins have real-world value.
+
+Required UI:
+- Available rewards: campus coffee, parking discount, EV charging credit.
+- Yield Coin balance and cost per reward.
+- "Redeem" button that generates a simulated QR code.
+- Redemption history.
+
+### 8.4 Community Challenge & Leaderboard
 
 Purpose: show social behaviour change and sustainability impact.
 
@@ -260,9 +344,8 @@ Required UI:
 - UTAR Green Week group progress.
 - Friend comparison.
 - Campus carbon map preview.
-- Team mode for 3-5 member hackathon teams.
 
-### 7.6 Fleet Command Centre
+### 8.5 Fleet Command Centre
 
 Purpose: make the project feel scalable and commercially relevant.
 
@@ -270,25 +353,12 @@ Required UI:
 - Fleet cards for campus shuttle EVs.
 - Average eco-score, total CO2 saved, alerts, active trips.
 - Risk map: areas with harsh braking clusters.
-- Maintenance insight: "Vehicle 03 shows unusual vibration."
-- Export monthly sustainability report.
-
-### 7.7 Trip Replay and Certificate
-
-Purpose: make impact provable after the trip.
-
-Required UI:
-- Timeline replay with green/red driving segments.
-- Key moments: harsh brake, smooth streak, high drag speed.
-- Before/after improvement card.
-- Carbon certificate preview.
-- Share/download actions.
 
 ---
 
-## 8. Core Product Mechanics
+## 9. Core Product Mechanics
 
-### 8.1 Impact Engine
+### 9.1 Impact Engine
 
 The Impact Engine converts driving data into sustainability metrics.
 
@@ -305,7 +375,7 @@ Demo constants can be shown transparently:
 - Malaysia grid factor: configurable value for demo.
 - EV efficiency target: 0.15 kWh/km.
 
-### 8.2 EcoCoin Reward Rules
+### 9.2 EcoCoin Reward Rules
 
 | Action | Reward |
 |---|---:|
@@ -316,8 +386,9 @@ Demo constants can be shown transparently:
 | No harsh brake trip | +20 coins |
 | Community challenge contribution | +20 coins |
 | First trip of the day | +5 coins |
+| Chose Eco-Route over Fast Route | +50 coins |
 
-### 8.3 Eco-City Adjacency Rules
+### 9.3 Eco-City Adjacency Rules
 
 | Pairing | Bonus | Sustainability Message |
 |---|---:|---|
@@ -329,143 +400,125 @@ Demo constants can be shown transparently:
 
 ---
 
-## 9. Data Model
+## 10. Pitch Demo Script (Two-Screen Setup)
 
-### 9.1 Main Entities
+### Setup
 
-```text
-User
-  id, name, campus, avatar, ecoRank, totalCoins, totalCo2SavedKg
-
-Device
-  id, userId, firmwareVersion, lastSeenAt, mode
-
-Trip
-  id, userId, startedAt, endedAt, distanceM, avgEcoScore, energyKwh, co2SavedKg
-
-TelemetryEvent
-  id, tripId, timestamp, speedKmh, accelX, accelY, accelZ, ecoScore, eventType
-
-CityTile
-  id, userId, x, y, buildingType, level, bonusMultiplier
-
-LeaderboardEntry
-  id, userId, period, ecoScoreAvg, co2SavedKg, rank
-
-CommunityGoal
-  id, title, targetCo2Kg, currentCo2Kg, reward, endsAt
-```
-
----
-
-## 10. Pitch Demo Script
+- iPad placed horizontally on the table (Driving Simulator App open).
+- ESP32 board with LED strip, OLED, and buzzer visible on the table next to the iPad.
+- Laptop/monitor behind showing the Main Dashboard App.
+- All three connected to the same WiFi hotspot.
 
 ### Scene 1: The Problem
 
-Show a normal EV dashboard mock: battery, speed, range. Ask:
+Show a normal EV dashboard mock on the laptop: battery, speed, range. Ask:
 
 > "Where is the carbon impact? Where is the behaviour feedback?"
 
-### Scene 2: Eco-Route Planner (Map Integration)
+### Scene 2: Eco-Route Selection (iPad)
 
-Open the Eco-Route Planner map on the iPad. Show two routes to the same destination. 
-
-Expected result:
-- Route A shows 18 mins (High emissions, 0 EcoCoins).
-- Route B shows 20 mins (Low emissions, +50 EcoCoins).
-- Tap to select Route B, transitioning to the Live Drive Dashboard.
-
-### Scene 3: Live Sensor Connection
-
-Activate the iPad virtual pedal simulator. Tap the gas pedal gently (like playing an F1 game).
+Open the Eco-Route Planner on the iPad. Show two routes on the map.
 
 Expected result:
-- The ESP32 receives the simulated acceleration.
-- Eco-score stays high.
-- LED stays green.
-- OLED says "Excellent driving".
-- Website shows smooth segment and CO2 saved.
+- Route A: 18 mins, high emissions, 0 bonus EcoCoins.
+- Route B: 20 mins, low emissions, +50 bonus EcoCoins.
+- Tap Route B. The driving game starts on the iPad.
 
-### Scene 4: Harsh Driving Event
+### Scene 3: Smooth Driving (iPad → ESP32 → Dashboard)
 
-Hit the virtual brake pedal hard on the iPad.
+Press the gas pedal gently on the iPad driving game. The car moves forward smoothly.
 
 Expected result:
-- The ESP32 receives the harsh brake event.
-- LED flashes red.
-- Buzzer beeps.
-- OLED shows hard brake warning.
-- Website eco-score drops and event feed updates instantly.
+- iPad shows smooth driving, speed climbing steadily.
+- ESP32 receives data: LED turns green, OLED says "Excellent driving."
+- Dashboard on laptop: eco-score gauge climbs to 90+, EcoCoins tick up, event feed shows "smooth segment."
 
-### Scene 5: Behaviour Change
+### Scene 4: Harsh Braking (iPad → ESP32 → Dashboard)
 
-Release the brake and tap the gas smoothly again.
+Slam the brake pedal on the iPad. The car screeches to a stop.
 
 Expected result:
-- Score recovers.
-- Advice changes to "Smooth again".
-- EcoCoins are awarded for a smooth streak.
+- iPad screen edges flash red.
+- ESP32: LED flashes red, buzzer beeps twice, OLED says "Hard brake detected."
+- Dashboard on laptop: eco-score drops instantly, event feed shows "harsh brake," driving advice changes to "Brake gently."
 
-### Scene 6: Sustainability Becomes Visible
+### Scene 5: Recovery
 
-Switch to Eco-City Builder.
-
-Expected result:
-- EcoCoins allow user to build a solar charger.
-- Passive income meter increases, unlocking real-life rewards.
-- Adjacency bonus appears.
-
-### Scene 7: Scale the Impact
-
-Switch to Community and Fleet views.
+Release brake and press gas smoothly again.
 
 Expected result:
-- Leaderboard updates.
+- ESP32: LED returns to green, OLED says "Smooth again."
+- Dashboard: score recovers, EcoCoins awarded for a smooth streak.
+
+### Scene 6: Eco-City Builder (Dashboard)
+
+Switch to Eco-City Builder on the Dashboard.
+
+Expected result:
+- Use the Raw EcoCoins earned from driving to build a Solar Farm.
+- Passive Yield Coin income increases.
+- Adjacency bonus appears when placed next to an EV Charger.
+
+### Scene 7: Rewards Marketplace (Dashboard)
+
+Navigate to the Rewards Marketplace on the Dashboard.
+
+Expected result:
+- Show accumulated Yield Coins.
+- Tap "Redeem" on a campus coffee reward.
+- A simulated QR code appears.
+
+### Scene 8: Community Leaderboard (Dashboard)
+
+Pull up the Community Leaderboard.
+
+Expected result:
+- Driver's ranking has moved up.
 - UTAR Green Week progress increases.
 - Fleet dashboard shows campus-level CO2 saved.
 
 ---
 
-## 11. Implementation Roadmap
+## 11. Implementation Roadmap (Demo-Focused)
 
-### Phase 1: Foundation
+### Phase 1: Communication Backbone
 
-- Set up monorepo with `apps/web`, `apps/api`, `firmware`.
-- Define telemetry JSON schema.
-- Build seed database.
-- Create dashboard design system and page shell.
-- Implement ESP32 simulator in the backend before hardware is ready.
+- Set up WiFi hotspot and WebSocket server on laptop.
+- Build ESP32 WiFi + WebSocket client firmware (receive and forward).
+- Test: send a JSON packet from a browser → ESP32 receives → ESP32 forwards to another browser.
 
-### Phase 2: Hardware Integration
+### Phase 2: ESP32 Processing & Feedback
 
-- Read MPU6050 values.
-- Implement local eco-score.
-- Add OLED, LED, buzzer states.
-- Send telemetry over WiFi.
-- Add indoor demo mode for reliable judging.
+- Implement eco-score calculation from simulator input.
+- Add OLED display output.
+- Add LED strip colour changes.
+- Add buzzer triggers.
+- Test: send throttle/brake data → ESP32 lights up correctly and forwards processed score.
 
-### Phase 3: Real-Time Website
+### Phase 3: Driving Simulator App (iPad)
 
-- WebSocket live dashboard.
-- Charts, event feed, and virtual hardware mirror.
-- Trip summary and EcoCoin rewards.
-- City and forest state updates.
+- Build route selection screen with Leaflet map.
+- Build 2D driving game with gas/brake touch zones.
+- Connect to ESP32 via WebSocket.
+- Test: drive on iPad → ESP32 reacts in real-time.
 
-### Phase 4: Wow Features
+### Phase 4: Main Dashboard App (Laptop)
 
-- Eco route planner simulation.
-- Eco-City adjacency system.
-- Community leaderboard.
-- Fleet command centre.
-- Trip replay and carbon certificate.
+- Build live eco-score gauge and trip metrics.
+- Build event feed.
+- Build Eco-City Builder grid.
+- Build Rewards Marketplace.
+- Build Community Leaderboard.
+- Connect to ESP32 output via WebSocket.
+- Test: full pipeline from iPad → ESP32 → Dashboard.
 
 ### Phase 5: Pitch Polish
 
-- Seed realistic demo scenarios.
-- Prepare backup video.
-- Add "offline simulator" button.
-- Rehearse 15-20 minute presentation.
-- Prepare Q&A explanations for formulas, hardware, and simulated parts.
+- Seed realistic demo scenarios (leaderboard data, city state, reward catalog).
+- Add smooth animations and transitions.
+- Prepare backup: if ESP32 fails, Dashboard can fall back to a software simulator.
+- Rehearse 15-20 minute presentation with two-screen setup.
+- Prepare Q&A explanations for architecture, formulas, and the two-app design choice.
 
 ---
 
@@ -475,13 +528,13 @@ Judges value honesty. The final presentation should clearly state:
 
 | Component | Demo Status |
 |---|---|
-| ESP32 motion detection | Live |
-| OLED/LED/buzzer feedback | Live |
-| WebSocket dashboard updates | Live |
-| Eco-score calculation | Live, locally computed |
-| GPS route | Live if signal available, simulated fallback indoors |
+| Driving Simulator input | Live (real user input on iPad) |
+| ESP32 eco-score processing | Live, locally computed on the microcontroller |
+| OLED/LED/buzzer feedback | Live, driven by ESP32 |
+| WebSocket data pipeline | Live, real-time WiFi communication |
+| Dashboard updates | Live, receiving real data from ESP32 |
+| Eco-City game state | Live in app based on coins earned |
 | Route energy comparison | Simulated using real formula and route-like sample data |
-| Eco-City state updates | Live in app based on telemetry/rewards |
 | Leaderboard/fleet data | Seeded demo data plus live current user update |
 | Future AI coaching | Not built; positioned as future improvement |
 
@@ -493,45 +546,48 @@ The PDF proposal should use one cover page plus five content pages:
 
 1. **Cover Page:** Project name, team name, tagline, theme fit.
 2. **Page 1:** Problem statement and target users.
-3. **Page 2:** Solution overview and product modules.
-4. **Page 3:** Technical implementation, architecture diagram, stack.
-5. **Page 4:** Expected live demo and hardware plan.
+3. **Page 2:** Solution overview and two-app architecture.
+4. **Page 3:** Technical implementation, data pipeline diagram, stack.
+5. **Page 4:** Expected live demo with two-screen setup.
 6. **Page 5:** Impact, future improvements, conclusion.
 
 ---
 
-## 14. Figma UI Scope
+## 14. UI Design Scope
 
-The Figma website demo should include seven desktop pages:
+### Simulator App (iPad) — 2 screens:
+
+1. Route Selection Map
+2. Driving Game
+
+### Dashboard App (Laptop) — 5 screens:
 
 1. Live Drive Dashboard
-2. Eco Route Planner
-3. Eco-City Builder
-4. Community Challenge
-6. Fleet Command Centre
-7. Trip Replay & Carbon Certificate
+2. Eco-City Builder
+3. Rewards Marketplace
+4. Community Leaderboard
+5. Fleet Command Centre
 
 Design direction:
-- Professional dashboard, not a marketing landing page.
-- Dark cockpit-style surface with clear high-contrast data.
-- Green used as a signal, not the whole palette.
-- Amber/red warning states for driving behaviour.
-- Cyan/blue for route and telemetry.
+- Simulator: dark racing-game aesthetic, large touch targets, neon accent colours.
+- Dashboard: professional cockpit-style, dark glass surface with clear high-contrast data.
+- Eco green: `#37E58F`. Telemetry cyan: `#38BDF8`. Warning amber: `#F5B84B`. Danger red: `#FF5B5B`.
 - Cards with small radii, dense information, and strong hierarchy.
-- Components: sidebar, top status bar, metric cards, charts, map panels, event rows, leaderboard rows, building tiles, route comparison cards.
 
 ---
 
 ## 15. Why This Can Score High
 
-EcoDrive+ is strong because it turns the handbook's expected EV dashboard into a complete sustainability loop:
+EcoDrive+ is strong because its two-app demo architecture creates a jaw-dropping live presentation:
 
-- Hardware proves the embedded systems requirement.
-- C++ firmware proves technical depth.
-- Real-time web dashboard proves software execution.
+- The iPad driving game makes the demo interactive and fun for judges.
+- The ESP32 hardware on the table proves real embedded systems processing.
+- The physical LED and buzzer reactions create a visceral "wow" moment.
+- The Dashboard web app proves full-stack software execution.
+- The complete data pipeline (Simulator → ESP32 → Dashboard) proves technical depth.
 - Carbon calculations prove sustainability relevance.
-- Gamification proves creativity.
-- Community and fleet views prove impact beyond one driver.
+- The Eco-City Builder and Rewards Marketplace prove creativity.
+- Community leaderboard and fleet views prove impact beyond one driver.
 - Clear live vs simulated disclosure builds judge trust.
 
-The project is ambitious, but the demo spine is simple and reliable: move the ESP32, watch the website change, then show how that behaviour becomes measurable carbon impact.
+The demo spine is simple and reliable: drive on the iPad, watch the ESP32 react on the table, then see everything update live on the Dashboard.
