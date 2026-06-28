@@ -21,39 +21,40 @@ Instead, we built the **Eco-City Builder (SimCity-Style)** right into the car's 
 At the end of the day, our **Community Leaderboard** makes drivers fully aware of how much carbon they actually saved compared to their friends and campus peers. It turns eco-driving from a boring chore into a deeply engaging, rewarding habit.
 
 ## 3. Technical Implementation & Use of Tools
-Technically, our demo uses a **two-app architecture** connected through an ESP32 microcontroller, creating a complete real-time data pipeline that we can demonstrate live on stage.
+Technically, the system connects hardware and software together to create a seamless real-time data pipeline from the vehicle all the way to the driver's dashboard.
 
-**App 1: Driving Simulator (iPad)**
-The first app is an interactive driving simulator running on an iPad, laid horizontally like an F1 racing game. It is purely a driving game — just the road and the pedals. It has a 2D driving game view with virtual gas and brake pedals. Every 200 milliseconds, the simulator sends raw driving data (throttle position, brake force, current speed) over WiFi to the ESP32.
+**ESP32 Hardware Unit (The Car Brain)**
+At the core of EcoDrive+ is the ESP32 microcontroller, which we are using as the vehicle's embedded brain. We hook it up to an **MPU6050 accelerometer and gyroscope** to track exactly how the car is moving — this is super important because it detects things like hard braking, fast acceleration, and sharp turning, which are the main culprits of energy waste. We are also using a **NEO-6M GPS module** to track the vehicle's speed, distance, and route position in real-time. The ESP32 reads the MPU6050 sensor data at 10Hz and the GPS at 1Hz, then calculates the eco-score locally right there on the device. We wanted the calculation to happen on-device so there is no lag for the driver.
 
-**ESP32 Hardware (The Car Brain)**
-The ESP32 microcontroller sits on the table during the pitch, acting as the "car's brain." It receives the raw driving data from the iPad, then processes the eco-score locally using our transparent formula. Based on the result, it drives physical hardware outputs: an RGB LED strip that glows green for smooth driving and flashes red for harsh braking, a buzzer that beeps on dangerous events, and an OLED display showing the live score. After processing, it forwards the results to our main dashboard.
+Once calculated, the ESP32 drives physical feedback outputs: an **RGB LED strip** that glows green for smooth driving and turns red for harsh braking, a **buzzer** that beeps on dangerous events, and an **SSD1306 OLED display** showing the live score. It then packages the processed results into a JSON telemetry packet and sends it over WiFi using WebSocket to our cloud server/dashboard.
 
-**App 2: Main Dashboard (Laptop/Monitor)**
-The second app is the full cockpit dashboard running on a laptop or external monitor. It starts with the **Eco-Route Planner**, where drivers use an integrated map (powered by Leaflet or Google Maps API) to compare a fast route versus an eco-friendly route. After selecting the eco-route, the dashboard transitions to the live driving view and signals the iPad to start the driving game. It then receives the processed telemetry from the ESP32 and displays everything in real-time: the eco-score gauge, EcoCoins earned, carbon saved, the Eco-City Builder, the Rewards Marketplace, and the Community Leaderboard.
+**Main Dashboard Web App**
+The dashboard is a premium cockpit-style web application built with Next.js and React, designed to look like a modern EV center console. It starts with the **Eco-Route Planner**, which integrates a real map API (Leaflet with OpenStreetMap or Google Maps) to compare routes. Drivers can see which route saves more energy and earns more EcoCoins. After selecting a route, the dashboard transitions to the live driving view, showing the real-time eco-score gauge, trip metrics, EcoCoins earned, carbon saved, and the event feed. It also contains the Eco-City Builder, Rewards Marketplace, and Community Leaderboard.
 
-For our use of tools, we are relying on open-source frameworks. The ESP32 firmware is written in C/C++ using the Arduino IDE. For the web apps, we are using Next.js with React for the UI, Leaflet for maps, and WebSocket for real-time communication. Everything runs locally on the same WiFi network — no internet dependency during the pitch.
+For our use of tools, we are relying on open-source frameworks. The ESP32 firmware is written in C/C++ using the Arduino IDE. For the dashboard, we are using Next.js with TypeScript for the UI, Leaflet for maps, Recharts for data visualisation, and WebSocket for real-time communication between the hardware and the web app.
+
+**Demo Adaptation**
+For our live hackathon demonstration, since we obviously cannot bring a real car on stage, we simulate the vehicle's sensor input using an **iPad Driving Simulator** — an interactive driving game (like an F1 racing game) with virtual gas and brake pedals. The iPad sends the same raw driving data (throttle, brake, speed) that a real MPU6050/GPS setup would produce, directly to the ESP32 over WiFi. The key point is that the ESP32 processing pipeline and dashboard are completely identical to the production system — only the data source changes.
 
 ## 4. Hardware Data Pipeline
-The data flows through three nodes in a continuous real-time loop. The iPad Driving Simulator sends raw input data (throttle, brake, speed) as JSON packets over WiFi WebSocket to the ESP32 every 200 milliseconds.
+How does the hardware actually talk to the dashboard? It is basically a constant loop of data. In production, the ESP32 reads the MPU6050 sensor at 10Hz and the GPS at 1Hz. It then calculates the local eco-score right there on the device using our transparent formula. (For the demo, this same data comes from the iPad driving simulator instead of physical sensors, but the processing is identical.)
 
-The ESP32 receives this data and immediately processes it through our eco-score algorithm. It calculates how smoothly the user is driving, checks for harsh braking events, and computes the energy efficiency. Based on the result, it updates the physical hardware: the LED strip changes colour, the buzzer triggers if needed, and the OLED updates the score.
-
-After processing, the ESP32 packages the results into a new JSON telemetry packet and forwards it over WiFi to the Main Dashboard web app:
+Once calculated, the ESP32 updates its own OLED display and changes the LED strip colour. Then, every 500 milliseconds, it packages all this data into a JSON packet and sends it over WiFi using WebSocket to our dashboard:
 
 ```json
 {
-  "deviceId": "ecodrive-demo-01",
+  "deviceId": "ecodrive-001",
   "ecoScore": 84,
   "speedKmh": 52.3,
   "event": "smooth_segment",
+  "hardBrakes": 0,
   "coinsEarned": 5,
   "totalCoins": 245,
   "energyKwh": 0.18,
   "co2SavedKg": 0.92
 }
 ```
-When the Dashboard receives this packet, it instantly updates the eco-score gauge, adds to the EcoCoin balance, scrolls the event feed, and shifts the leaderboard position. The entire pipeline — from pressing the gas pedal on the iPad to seeing the dashboard update — happens in under 500 milliseconds.
+When the dashboard receives this packet, it instantly updates the eco-score gauge, adds to the EcoCoin balance, scrolls the event feed, and shifts the leaderboard position. The entire pipeline — from sensor reading to dashboard update — happens in under 500 milliseconds.
 
 ## 5. Expected Demo: Two-Screen Live Demonstration
 For our live presentation, we will set up a **two-screen demo** with the ESP32 hardware visible between them. The iPad will be placed horizontally showing the Driving Simulator, the ESP32 board with its LED strip and OLED will sit on the table, and a laptop or monitor behind will display the Main Dashboard.
