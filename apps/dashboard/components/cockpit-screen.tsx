@@ -15,6 +15,7 @@ import { cockpitModes, type Metric, type ModeId } from "../data/cockpit-content"
 import { eventLabel, hardwareFeedbackForTelemetry } from "../lib/dashboard-data";
 import { useDashboardStore } from "../lib/dashboard-store";
 import type { ProcessedTelemetry } from "../types/dashboard";
+import { EcoRouteMap } from "./eco-route-map";
 
 type CockpitScreenProps = {
   mode: ModeId;
@@ -113,21 +114,11 @@ function DriveSurface({ telemetry }: { telemetry: ProcessedTelemetry | null }) {
 }
 
 function RouteSurface({ telemetry }: { telemetry: ProcessedTelemetry | null }) {
+  // If we have live telemetry with a speed > 0, we might want to show the live stats 
+  // instead of the planner, but for the demo, Route mode IS the planner.
   return (
-    <div className="live-surface route-surface-clean">
-      <div className="surface-grid" />
-      <div className="route-spine">
-        <span />
-        <i />
-        <b />
-      </div>
-      <div className="packet-panel packet-panel--wide">
-        <PacketRow label="Route choice" value={telemetry?.routeChoice ?? "--"} />
-        <PacketRow label="Distance" value={formatUnit(telemetry?.distanceKm, "km", 2)} />
-        <PacketRow label="Steering" value={formatSigned(telemetry?.steering)} />
-        <PacketRow label="Speed" value={formatUnit(telemetry?.speedKmh, "km/h", 0)} />
-      </div>
-      {!telemetry ? <EmptyState icon={Route} title="Route feed not connected" /> : null}
+    <div className="live-surface route-surface-clean" style={{ padding: 0 }}>
+      <EcoRouteMap onRouteSelect={(route) => console.log("Selected route:", route.id)} />
     </div>
   );
 }
